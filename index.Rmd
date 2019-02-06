@@ -1,0 +1,12 @@
+
+
+```{r collect, eval=TRUE}
+link="https://github.com/EvansDataScience/data/raw/master/crime.RData"
+load(file = url(link))
+```
+
+```{r}
+t=table(crime$weekday)
+barplot(t)
+```
+
