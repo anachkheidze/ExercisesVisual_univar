@@ -1,12 +1,150 @@
+---
+title: "Univariate_Exercise 1"
+produced by: Ana 
+output: html_document
+---
 
 
-```{r collect, eval=TRUE}
-link="https://github.com/EvansDataScience/data/raw/master/crime.RData"
-load(file = url(link))
+```{r Data, eval=TRUE}
+linkd='https://github.com/EvansDataScience/VisualAnalytics_2_tabularData/raw/master/data/eduwa.rda'
+load(file=url(linkd))
 ```
 
-```{r}
-t=table(crime$weekday)
-barplot(t)
+-------Exercise_1_Barplot--------
+```{r toplot, eval=TRUE}
+absoluteT=table(eduwa$LocaleType,exclude = 'nothing')
+ToPlot=prop.table(absoluteT)
+ToPlot=ToPlot*100
 ```
 
+```{r tablefreq,eval=TRUE}
+tableFreq=as.data.frame(ToPlot)
+names(tableFreq)=c("locale","pct")
+```
+
+```{r calllibrary,eval=TRUE}
+library(ggplot2)
+```
+
+
+```{r barplot, eval=TRUE}
+
+base=ggplot(data = tableFreq, 
+             aes(reorder(x=locale,-pct),
+                 y = pct))
+plot1= base+ geom_bar(fill ="gray",
+                        stat = 'identity')+labs(title='Are all locations getting a fair share of public schools in WA?',
+                        x =NULL, 
+                        y = NULL,
+                        caption = 'Source: US Department of Education')
+plot2=plot1+geom_hline(yintercept = 25, 
+                        linetype="dashed", 
+                        size=1.5, 
+                       alpha=0.5)
+plot3=plot2+scale_y_continuous(breaks=c(0,10, 25,40,50),
+                                 limits = c(0, 50), # expand = c(0, 0),
+                                 labels=scales::unit_format(suffix = '%')) 
+plot4=plot3+theme(panel.background = element_rect(fill = "white",
+                                                    colour = "grey50"), 
+                  plot.caption = element_text(hjust = 0), 
+                  plot.title = element_text(hjust = 0.5))
+                  
+plot5=plot4+geom_text(aes(y = pct ,
+                        label = paste0(round(pct,2), '%')),
+                        vjust=1, # if flipping 'hjust'
+                        size = 3)
+plot5
+
+```
+
+------Exercise_2_Lolliplot-------
+```{r Answer, eval=TRUE}
+tableFreqO=tableFreq[order(tableFreq$pct),]
+tableFreqO$gap=tableFreqO$pct-25
+tableFreqO$PositiveGap=ifelse(tableFreqO$gap>0,T,F)
+base = ggplot(tableFreqO, aes(locale,gap,color=PositiveGap,
+                              label = round(gap,3)))
+lolliplot1=base + geom_segment(aes(y = 0, 
+                                   x = locale, 
+                                   yend = gap, 
+                                   xend = locale), color = "gray") 
+lolliplot2=lolliplot1 + geom_point() 
+lolliplot3= lolliplot2 + scale_x_discrete(limits=tableFreqO$locale)
+
+lolliplot3 + geom_text(nudge_x=0.3,show.legend = FALSE) + labs(title='The gap for each location in WA with respect to a 25% share of public schools',x='Location', y='Difference with respect to 25% baseline',caption='Source:US Department of Education')
+```
+
+--------Exercise_3_Boxplot------
+```{r boxplot, eval=TRUE}
+ordLabels= levels(eduwa$High.Grade)
+box1 = ggplot(eduwa, aes(y=as.numeric(High.Grade)))+ geom_boxplot() + coord_flip()
+box2 = box1 + scale_y_continuous(labels=ordLabels,breaks=1:15)+labs(title='Boxplot of percentage of schools by the highest grade offered',y='Highest Grade', x=NULL, caption='Source:US Department of Education')
+box2
+```
+
+--------Exercise_4_Histogram---------
+```{r Hist,eval=TRUE}
+eduwa3=eduwa[complete.cases(eduwa$Reduced.Lunch),]
+base= ggplot(eduwa3,aes(x = Free.Lunch))  
+h1= base + geom_histogram(color="black",fill="purple",binwidth = 150,boundary=0) 
+h1= h1 + stat_bin(binwidth = 150, aes(label=..count..), 
+                  geom = "text",boundary = 0,vjust=-0.5)+scale_x_continuous(breaks = seq(0, 1800, by = 150))
+h2=h1+labs(title='How many schools give free lunches?',
+           x='# of free lunches',
+           y='Schools',
+           caption='Source:US Department of Education')
+h2
+```
+
+--------Exercise 5--------
+```{r tapply, eval=TRUE}
+eduwa4=eduwa[complete.cases(eduwa$Student.Teacher.Ratio),]
+meanvalues=tapply(eduwa4$Student.Teacher.Ratio, 
+       eduwa4$County, 
+       mean)
+```
+
+```{r meanvalues, eval=TRUE}
+meanv=as.data.frame(meanvalues)
+head(meanv)
+```
+
+```{r histogram, eval=TRUE}
+base= ggplot(meanv,aes(x =meanvalues))  
+h1= base + geom_histogram(color="black", fill="purple",binwidth = 3,boundary=0)
+h2= h1+stat_bin(binwidth = 3, aes(label=..count..), 
+                  geom = "text",boundary = 0,vjust=-0.5)+scale_x_continuous(breaks = seq(10, 24, by = 2))+geom_vline(aes(xintercept = mean(meanvalues),
+                               color = "Mean"),
+                               linetype="dashed",
+                               size=1.3, 
+                               alpha=0.8,
+                               show.legend= TRUE)
+ h3=h2+labs(title="Distribution of counties by mean student/teacher ratio", 
+                         y = 'Frequency',
+                         x = 'Mean student-teacher ratio',
+                         caption = 'Source: US Department of Education')+
+   theme(legend.title = element_blank())
+h3
+```
+
+```{r geomdensity, eval=TRUE}
+geomdensity=ggplot(meanv, aes(meanvalues)) +
+  geom_density(adjust=1, color="purple")+scale_x_continuous(breaks = seq(10, 24, by = 2))+geom_vline(aes(xintercept = mean(meanvalues),
+                               color = "Mean"),
+                               linetype="dashed",
+                               size=1.0, 
+                               alpha=0.9,
+                               show.legend= TRUE)+
+   geom_vline(aes(xintercept = median(meanvalues),
+                             color = "Median"), 
+                             linetype="dashed",
+                             size=1.0, 
+                             alpha=0.9, 
+                             show.legend = TRUE)+ 
+labs(title="Density of counties by mean student-teacher ratio ", 
+                         y = 'Density',
+                         x = 'Mean student-teacher ratio',
+                         caption = 'Source: US Department of Education')+
+theme(legend.title = element_blank())
+ geomdensity 
+```
